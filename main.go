@@ -26,6 +26,8 @@ var (
 	cfgFreeTier        = false
 	cfgBatchSize       = 10
 	cfgMetricsDenylist = ""
+	cfgDomainNamesList = ""
+	cfgRequestPath     = ""
 )
 
 func getTargetZones() []string {
@@ -103,12 +105,7 @@ func filterExcludedZones(all []cloudflare.Zone, exclude []string) []cloudflare.Z
 func fetchMetrics() {
 	var wg sync.WaitGroup
 	zones := fetchZones()
-	accounts := fetchAccounts()
 	filteredZones := filterExcludedZones(filterZones(zones, getTargetZones()), getExcludedZones())
-
-	for _, a := range accounts {
-		go fetchWorkerAnalytics(a, &wg)
-	}
 
 	// Make requests in groups of cfgBatchSize to avoid rate limit
 	// 10 is the maximum amount of zones you can request at once
@@ -121,9 +118,11 @@ func fetchMetrics() {
 		targetZones := filteredZones[:sliceLength]
 		filteredZones = filteredZones[len(targetZones):]
 
-		go fetchZoneAnalytics(targetZones, &wg)
-		go fetchZoneColocationAnalytics(targetZones, &wg)
-		go fetchLoadBalancerAnalytics(targetZones, &wg)
+		domainNameslist := []string{}
+		if len(cfgDomainNamesList) > 0 {
+			domainNameslist = strings.Split(cfgDomainNamesList, ",")
+		}
+		go fetchZoneAnalytics(targetZones, domainNameslist, cfgRequestPath, &wg)
 	}
 
 	wg.Wait()
@@ -141,7 +140,10 @@ func main() {
 	flag.IntVar(&cfgBatchSize, "cf_batch_size", cfgBatchSize, "cloudflare zones batch size (1-10), defaults to 10")
 	flag.BoolVar(&cfgFreeTier, "free_tier", cfgFreeTier, "scrape only metrics included in free plan")
 	flag.StringVar(&cfgMetricsDenylist, "metrics_denylist", cfgMetricsDenylist, "metrics to not expose, comma delimited list")
+	flag.StringVar(&cfgDomainNamesList, "domain_names", cfgDomainNamesList, "DNS domains to gather http_status stats for")
+	flag.StringVar(&cfgRequestPath, "request_path", cfgRequestPath, "Regex for requests path for look into")
 	flag.Parse()
+
 	if !(len(cfgCfAPIToken) > 0 || (len(cfgCfAPIEmail) > 0 && len(cfgCfAPIKey) > 0)) {
 		log.Fatal("Please provide CF_API_KEY+CF_API_EMAIL or CF_API_TOKEN")
 	}
