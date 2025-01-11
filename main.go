@@ -27,7 +27,7 @@ var (
 	cfgBatchSize       = 10
 	cfgMetricsDenylist = ""
 	cfgDomainNamesList = ""
-	cfgRequestPath     = ""
+	cfgRequestPaths    = ""
 )
 
 func getTargetZones() []string {
@@ -122,7 +122,11 @@ func fetchMetrics() {
 		if len(cfgDomainNamesList) > 0 {
 			domainNameslist = strings.Split(cfgDomainNamesList, ",")
 		}
-		go fetchZoneAnalytics(targetZones, domainNameslist, cfgRequestPath, &wg)
+		requestPaths := []string{}
+		if len(cfgRequestPaths) > 0 {
+			requestPaths = strings.Split(cfgRequestPaths, ",")
+		}
+		go fetchZoneAnalytics(targetZones, domainNameslist, requestPaths, &wg)
 	}
 
 	wg.Wait()
@@ -141,7 +145,7 @@ func main() {
 	flag.BoolVar(&cfgFreeTier, "free_tier", cfgFreeTier, "scrape only metrics included in free plan")
 	flag.StringVar(&cfgMetricsDenylist, "metrics_denylist", cfgMetricsDenylist, "metrics to not expose, comma delimited list")
 	flag.StringVar(&cfgDomainNamesList, "domain_names", cfgDomainNamesList, "DNS domains to gather http_status stats for")
-	flag.StringVar(&cfgRequestPath, "request_path", cfgRequestPath, "Regex for requests path for look into")
+	flag.StringVar(&cfgRequestPaths, "request_paths", cfgRequestPaths, "Comma-separated list of regex patterns for request paths to look into")
 	flag.Parse()
 
 	if !(len(cfgCfAPIToken) > 0 || (len(cfgCfAPIEmail) > 0 && len(cfgCfAPIKey) > 0)) {

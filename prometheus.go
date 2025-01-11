@@ -36,7 +36,7 @@ var (
 	zoneRequestStatusCountryHost = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: zoneRequestStatusCountryHostMetricName.String(),
 		Help: "Count of requests for zone per edge HTTP status per country per host",
-	}, []string{"zone", "status", "host"},
+	}, []string{"zone", "status", "host", "path"},
 	)
 )
 
@@ -66,7 +66,7 @@ func mustRegisterMetrics(deniedMetrics MetricsSet) {
 
 }
 
-func fetchZoneAnalytics(zones []cloudflare.Zone, domainNames []string, requestPath string, wg *sync.WaitGroup) {
+func fetchZoneAnalytics(zones []cloudflare.Zone, domainNames []string, requestPaths []string, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 
@@ -80,19 +80,21 @@ func fetchZoneAnalytics(zones []cloudflare.Zone, domainNames []string, requestPa
 		return
 	}
 
-	r, err := fetchZoneTotals(zoneIDs, domainNames, requestPath)
-	if err != nil {
-		return
-	}
+	for _, requestPath := range requestPaths {
+		r, err := fetchZoneTotals(zoneIDs, domainNames, requestPath)
+		if err != nil {
+			continue
+		}
 
-	for _, z := range r.Viewer.Zones {
-		name := findZoneName(zones, z.ZoneTag)
-		addHTTPGroups(&z, name)
-		addHTTPAdaptiveGroups(&z, name)
+		for _, z := range r.Viewer.Zones {
+			name := findZoneName(zones, z.ZoneTag)
+			addHTTPGroups(&z, name)
+			addHTTPAdaptiveGroups(&z, name, requestPath)
+		}
 	}
 }
 
-func addHTTPGroups(z *zoneResp, name string) {
+func addHTTPGroups(z *zoneResp, _ string) {
 	// Nothing to do.
 	if len(z.HTTP1mGroups) == 0 {
 		return
@@ -101,7 +103,7 @@ func addHTTPGroups(z *zoneResp, name string) {
 
 }
 
-func addHTTPAdaptiveGroups(z *zoneResp, name string) {
+func addHTTPAdaptiveGroups(z *zoneResp, name string, requestPath string) {
 
 	for _, g := range z.HTTPRequestsEdgeCountryHost {
 		zoneRequestStatusCountryHost.With(
@@ -109,6 +111,7 @@ func addHTTPAdaptiveGroups(z *zoneResp, name string) {
 				"zone":   name,
 				"status": strconv.Itoa(int(g.Dimensions.EdgeResponseStatus)),
 				"host":   g.Dimensions.ClientRequestHTTPHost,
+				"path":   requestPath,
 			}).Add(float64(g.Count))
 	}
 

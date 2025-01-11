@@ -11,6 +11,7 @@ import (
 
 var (
 	cfGraphQLEndpoint = "https://api.cloudflare.com/client/v4/graphql/"
+	newGraphQLClient  = graphql.NewClient
 )
 
 type cloudflareResponse struct {
@@ -149,7 +150,7 @@ httpRequestsEdgeCountryHost: httpRequestsAdaptiveGroups(limit: $limit, filter:
 	request.Var("requestPath", requestPath)
 
 	ctx := context.Background()
-	graphqlClient := graphql.NewClient(cfGraphQLEndpoint)
+	graphqlClient := newGraphQLClient(cfGraphQLEndpoint)
 
 	var resp cloudflareResponse
 	if err := graphqlClient.Run(ctx, request, &resp); err != nil {
