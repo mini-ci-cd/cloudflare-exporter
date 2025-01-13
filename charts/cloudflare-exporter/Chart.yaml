@@ -1,6 +1,6 @@
 apiVersion: v2
 name: cloudflare-exporter
-version: 0.1.9
+version: 0.1.10
 appVersion: 0.0.9
 home: https://github.com/lablabs/cloudflare-exporter
 description: A Helm chart for cloudflare exporter
@@ -10,7 +10,7 @@ keywords:
   - cloudflare
   - monitoring
 sources:
-  - https://github.com/lablabs/cloudflare-exporter
+  - https://github.com/mini-ci-cd/cloudflare-exporter
 maintainers:
   - name: martinhaus
   - name: haad

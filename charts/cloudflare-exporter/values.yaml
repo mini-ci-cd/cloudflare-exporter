@@ -8,7 +8,7 @@ image:
   repository: ghcr.io/mini-ci-cd/cloudflare-exporter
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  # tag: latest
+  tag: latest
 env: []
 secretRef: ""
 imagePullSecrets: []
@@ -63,6 +63,15 @@ serviceMonitor:
   # Set of labels to transfer on the Kubernetes Service onto the target.
   targetLabels: []
   metricRelabelings: []
+
+podMonitoring:
+  enabled: true
+  interval: 30s
+  telemetryPath: /metrics
+  timeout: 10s
+  metricRelabelings: []
+  relabelings: []
+  targetLabels: []
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
